@@ -1,13 +1,16 @@
-#!/usr/bin/bash
+#!/bin/bash
+
+# Update package lists
+sudo dnf update -y
 
 # Install required packages
-sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+sudo dnf install -y dnf-utils device-mapper-persistent-data lvm2
 
 # Add Docker repository
-sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf config-manager --add-repo=https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 
 # Install Docker
-sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Start Docker and enable it to start at boot time
 sudo systemctl start docker
