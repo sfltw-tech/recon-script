@@ -1,0 +1,119 @@
+version: '3.8'
+  
+services:
+  prometheus:
+    image: 10.239.40.165:5000/prom/prometheus
+    container_name: monitoring_prometheus
+    restart: unless-stopped
+    user: root
+    volumes:
+      - ./config:/etc/prometheus:ro
+      - ./data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-admin-api'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    networks:
+      - monitoring
+    # entrypoint:
+    #   - sleep
+    #   - inf
+
+  node-exporter:
+    image: 10.239.40.165:5000/prom/node-exporter
+    container_name: monitoring_node_exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+    ports:
+      - 9100:9100
+    networks:
+      - monitoring
+
+  grafana:
+    image: 10.239.40.165:5000/grafana/grafana
+    container_name: monitoring_grafana
+    restart: unless-stopped
+    user: root
+    ports:
+      - 3000:3000
+    volumes:                                                                                                                                                                                           
+      - ./data/grafana:/var/lib/grafana                                                                                                                                                                
+      - ./grafana.ini:/etc/grafana/grafana.ini                                                                                                                                                         
+    environment:                                                                                                                                                                                       
+      - GF_SECURITY_ADMIN_USER=admin                                                                                                                                                                   
+      - GF_SECURITY_ADMIN_PASSWORD=Twers@sephora2023                                                                                                                                                   
+      - GF_USERS_ALLOW_SIGN_UP=false                                                                                                                                                                   
+      #- GF_SERVER_DOMAIN=myurl.com                                                                                                                                                                    
+      # - GF_SMTP_ENABLED=true                                                                                                                                                                         
+      # - GF_SMTP_HOST=smtp.gmail.com:587                                                                                                                                                              
+      # - GF_SMTP_USER=myadrress@gmail.com                                                                                                                                                             
+      # - GF_SMTP_PASSWORD=mypassword                                                                                                                                                                  
+      # - GF_SMTP_FROM_ADDRESS=myaddress@gmail.com                                                                                                                                                     
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning                                                                                                                                                
+      # - GF_AUTH_ANONYMOUS_ENABLED=true                                                                                                                                                               
+      # - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin                                                                                                                                                             
+   # entrypoint:                                                                                                                                                                                       
+   #   - sh                                                                                                                                                                                            
+   #   - -euc                                                                                                                                                                                          
+   #   - |                                                                                                                                                                                             
+   #     mkdir -p /etc/grafana/provisioning/datasources                                                                                                                                                
+   #     cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml                                                                                                                                     
+   #     apiVersion: 1                                                                                                                                                                                 
+   #     datasources:                                                                                                                                                                                  
+   #     - name: Loki                                                                                                                                                                                  
+   #       type: loki                                                                                                                                                                                  
+   #       access: proxy                                                                                                                                                                               
+   #       orgId: 1                                                                                                                                                                                    
+   #       url: http://loki:3100                                                                                                                                                                       
+   #       basicAuth: false                                                                                                                                                                            
+   #       isDefault: true                                                                                                                                                                             
+   #       version: 1                                                                                                                                                                                  
+   #       editable: false                                                                                                                                                                             
+   #     EOF                                                                                                                                                                                           
+   #     /run.sh                                                                                                                                                                                       
+    networks:                                                                                                                                                                                          
+      - monitoring
+
+  loki:                                                                                                                                                                                                
+    image: 10.239.40.165:5000/grafana/loki                                                                                                                                                             
+    ports:                                                                                                                                                                                             
+      - "3100:3100"                                                                                                                                                                                    
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+
+  promtail:
+    image: 10.239.40.165:5000/grafana/promtail
+    volumes:
+      - /var/log:/var/log
+      - /home/chn-app-ops/app-log:/home/chn-app-ops/app-log
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring
+
+  cadvisor:
+    image: 10.239.40.165:5000/google/cadvisor
+    container_name: cadvisor
+    ports:
+      - 8081:8081
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+networks:
+  monitoring:
+    driver: bridge

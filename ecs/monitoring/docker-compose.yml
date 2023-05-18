@@ -1,0 +1,32 @@
+version: '3.8'
+  
+services:
+  node-exporter:
+    image: 10.239.40.165:5000/prom/node-exporter
+    container_name: monitoring_node_exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+    ports:
+      - 9100:9100
+    networks:
+      - monitoring
+
+  promtail:
+    image: 10.239.40.165:5000/grafana/promtail
+    volumes:
+      - /home/chn-app-ops/app-log:/home/chn-app-ops/app-log
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
